@@ -275,6 +275,39 @@ class TestAsArray:
         # check we avoid the segfault
         c_arr[0][0][0]
 
+    def test_flags(self):
+        from ctypes import c_int
+
+        pair_t = c_int * 2
+        a = as_array(pair_t(1, 2), order='C')
+
+        assert a.flags['C_CONTIGUOUS']
+
+        a = as_array(pair_t(1, 2), order='F')
+
+        assert a.flags['F_CONTIGUOUS']
+
+    def test_dtype(self):
+        from ctypes import c_int, c_float
+
+        pair_t = c_int * 2
+
+        # dtype shoud be ignored
+        a = as_array(pair_t(1, 2), dtype=np.dtype(float))
+
+        assert a.dtype == np.dtype('<i4')
+
+        # dtype should not be ignored
+        # Make a void pointer pointing to the start of pair_t
+        pair_t = (c_float * 2)()
+        void_ptr = ctypes.POINTER(ctypes.c_void_p)
+        ptr = ctypes.cast(ctypes.addressof(pair_t), void_ptr)
+
+        a = as_array(ptr, shape=(2,), dtype=np.dtype('<f4'))
+
+        assert a.dtype == np.dtype('<f4')
+
+
 
 @pytest.mark.skipif(ctypes is None,
                     reason="ctypes not available on this python installation")

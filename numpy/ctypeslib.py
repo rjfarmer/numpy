@@ -504,8 +504,7 @@ if ctypes is not None:
         """
         return _ctype_from_dtype(_dtype(dtype))
 
-
-    def as_array(obj, shape=None):
+    def as_array(obj, shape=None, dtype=None, order=None):
         """
         Create a numpy array from a ctypes array or POINTER.
 
@@ -513,6 +512,18 @@ if ctypes is not None:
 
         The shape parameter must be given if converting from a ctypes POINTER.
         The shape parameter is ignored if converting from a ctypes array
+        The dtype parameter is ignored unless converting from a void POINTER.
+
+        Parameters
+        ----------
+        shape : tuple of ints, optional
+            Array shape.
+        dtype : data-type, optional
+            Array data-type.
+        order : {'C', or 'F'}, optional
+            Sets the memory layout of the result. 'C' means C-order,
+            'F' means F-order.
+
         """
         if isinstance(obj, ctypes._Pointer):
             # convert pointers to an array of the desired shape
@@ -520,10 +531,19 @@ if ctypes is not None:
                 raise TypeError(
                     'as_array() requires a shape argument when called on a '
                     'pointer')
-            p_arr_type = ctypes.POINTER(_ctype_ndarray(obj._type_, shape))
+            obj_type = obj._type_
+            if obj._type_ == ctypes.c_void_p:
+                if dtype is None:
+                    raise TypeError(
+                   'as_array() requires a dtype argument when called on a '
+                    'void pointer')
+                
+                obj_type = as_ctypes_type(dtype)
+
+            p_arr_type = ctypes.POINTER(_ctype_ndarray(obj_type, shape))
             obj = ctypes.cast(obj, p_arr_type).contents
 
-        return asarray(obj)
+        return asarray(obj, order=order)
 
 
     def as_ctypes(obj):
